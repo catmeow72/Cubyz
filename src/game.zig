@@ -561,6 +561,20 @@ pub const Player = struct { // MARK: Player
 		}
 	}
 
+	pub fn useItem() void {
+		if(isBlockSelected() or !inventory.useItem(@intCast(selectedSlot))) {
+			placeBlock();
+		}
+	}
+
+	pub fn isBlockSelected() bool {
+		return inventory.isBlock(@intCast(selectedSlot));
+	}
+
+	pub fn isFoodSelected() bool {
+		return inventory.isFood(@intCast(selectedSlot));
+	}
+
 	pub fn placeBlock() void {
 		if(main.renderer.MeshSelection.selectedBlockPos) |blockPos| {
 			const block = main.renderer.mesh_storage.getBlock(blockPos[0], blockPos[1], blockPos[2]) orelse main.blocks.Block{.typ = 0, .data = 0};
@@ -632,7 +646,7 @@ pub const Player = struct { // MARK: Player
 		}
 	}
 
-	pub fn useHunger(amount: f32) bool{
+	pub fn useHunger(amount: f32) bool {
 		if(super.hunger >= amount) {
 			super.hunger -= amount;
 			return true;
@@ -796,7 +810,7 @@ var nextBlockBreakTime: ?i64 = null;
 pub fn pressPlace() void {
 	const time = std.time.milliTimestamp();
 	nextBlockPlaceTime = time + main.settings.updateRepeatDelay;
-	Player.placeBlock();
+	Player.useItem();
 }
 
 pub fn releasePlace() void {

@@ -464,6 +464,7 @@ pub const Command = struct { // MARK: Command
 		clear = 8,
 		updateBlock = 9,
 		addHealth = 10,
+		removeOne = 11,
 	};
 	pub const Payload = union(PayloadType) {
 		open: Open,
@@ -477,6 +478,7 @@ pub const Command = struct { // MARK: Command
 		clear: Clear,
 		updateBlock: UpdateBlock,
 		addHealth: AddHealth,
+		removeOne: RemoveOne,
 	};
 
 	const BaseOperationType = enum(u8) {
@@ -1026,6 +1028,23 @@ pub const Command = struct { // MARK: Command
 			.item = source.ref().item,
 		}}, side);
 	}
+
+	const RemoveOne = struct { // MARK: RemoveOne
+		slot: InventoryAndSlot,
+		fn run(self: RemoveOne, alloc: NeverFailingAllocator, cmd: *Command, side: Side, _: ?*main.server.User, _: Gamemode) error{serverFailure}!void {
+			std.debug.assert(self.slot.inv.type == .normal);
+			cmd.executeRemoveOperation(alloc, side, self.slot, 1);
+		}
+		fn serialize(self: RemoveOne, writer: *utils.BinaryWriter) void {
+			self.slot.write(writer);
+		}
+
+		fn deserialize(reader: *utils.BinaryReader, side: Side, user: ?*main.server.User) !RemoveOne {
+			return .{
+				.slot = try InventoryAndSlot.read(reader, side, user),
+			};
+		}
+	};
 
 	const Open = struct { // MARK: Open
 		inv: Inventory,
@@ -1827,6 +1846,38 @@ pub fn fillAmountFromCreative(dest: Inventory, destSlot: u32, item: ?Item, amoun
 
 pub fn placeBlock(self: Inventory, slot: u32) void {
 	main.renderer.MeshSelection.placeBlock(self, slot);
+}
+
+pub fn isBlock(self: Inventory, slot: usize) bool {
+	if (self.getItem(slot)) |item| {
+		return item.isBlock();
+	} else {
+		return false;
+	}
+}
+
+pub fn isFood(self: Inventory, slot: usize) bool {
+	if (self.getItem(slot)) |item| {
+		return item.isFood();
+	} else {
+		return false;
+	}
+}
+
+pub fn removeOneItem(self: Inventory, slot: u32) void {
+	Sync.ClientSide.executeCommand(.{ .removeOne = .{.slot = .{.inv = self, .slot = slot}} });
+}
+
+pub fn useItem(self: Inventory, slot: u32) bool {
+	if(self.getItem(@intCast(slot))) |item| {
+		if(item.isFood()) {
+			if(item.eat()) {
+				self.removeOneItem(slot);
+				return true;
+			}
+		}
+	}
+	return false;
 }
 
 pub fn breakBlock(self: Inventory, slot: u32, deltaTime: f64) void {

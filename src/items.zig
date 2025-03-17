@@ -209,6 +209,15 @@ pub const BaseItem = struct { // MARK: BaseItem
 	fn getTooltip(self: BaseItem) []const u8 {
 		return self.name;
 	}
+	pub fn eat(self: BaseItem) bool {
+		if(self.foodValue == 0) {
+			return false;
+		} else if(self.foodValue > 0) {
+			return main.game.Player.healHunger(self.foodValue);
+		} else {
+			return main.game.Player.useHunger(-self.foodValue);
+		}
+	}
 };
 
 ///Generates the texture of a Tool using the material information.
@@ -679,6 +688,39 @@ pub const Item = union(enum) { // MARK: Item
 			.tool => |_tool| {
 				return _tool.image;
 			},
+		}
+	}
+
+	pub fn isBlock(self: Item) bool {
+		switch (self) {
+			.baseItem => |_baseItem| {
+				return _baseItem.block != null;
+			},
+			else => {
+				return false;
+			}
+		}
+	}
+
+	pub fn isFood(self: Item) bool {
+		switch(self) {
+			.baseItem => |_baseItem| {
+				return _baseItem.foodValue != 0.0;
+			},
+			else => {
+				return false;
+			}
+		}
+	}
+
+	pub fn eat(self: Item) bool {
+		switch (self) {
+			.baseItem => |_baseItem| {
+				return _baseItem.eat();
+			},
+			else => {
+				return false;
+			}
 		}
 	}
 
